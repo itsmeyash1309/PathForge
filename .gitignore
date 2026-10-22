@@ -1,0 +1,4 @@
+NOTES.md
+build/
+cmake-build-*/
+.cache/clangd/index

@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 3.20)
+project(route_engine CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+add_compile_options(-Wall -Wextra -Wpedantic)
+
+include_directories(src)
+
+add_executable(test_dijkstra tests/test_dijkstra.cpp)
+add_executable(test_astar tests/test_astar.cpp)
