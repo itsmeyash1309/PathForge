@@ -1,7 +1,9 @@
 #undef NDEBUG
 #include "../src/dijkstra.hpp"
 #include "../src/graph.hpp"
+#include "../src/router.hpp"
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -31,7 +33,10 @@ void test_eight_node_graph() {
   g.add_edge(5, 7, 2);
   g.add_edge(6, 7, 3);
 
-  Result res = dijkstra(g, 0, 7);
+  DijkstraRouter router(g);
+  assert(strcmp(router.name(), "Dijkstra") == 0);
+
+  Result res = router.query(0, 7);
   assert(res.dist == 10);
   const vector<uint32_t> expected_path = {0, 2, 1, 4, 5, 7};
   assert(res.path == expected_path);
@@ -47,7 +52,8 @@ void test_unreachable_target() {
   // Nodes 3 and 4 have no connection to nodes 0, 1, 2
   g.add_edge(3, 4, 5);
 
-  Result res = dijkstra(g, 0, 4);
+  DijkstraRouter router(g);
+  Result res = router.query(0, 4);
   assert(res.dist == INF);
   assert(res.path.empty());
 }
@@ -58,23 +64,48 @@ void test_one_way_edge() {
   g.add_edge(0, 1, 10);
   g.add_edge(1, 2, 10);
 
+  DijkstraRouter router(g);
+
   // Forward path traversable
-  Result fwd = dijkstra(g, 0, 2);
+  Result fwd = router.query(0, 2);
   assert(fwd.dist == 20);
   const vector<uint32_t> expected_path = {0, 1, 2};
   assert(fwd.path == expected_path);
 
   // Reverse path not traversable
-  Result rev = dijkstra(g, 2, 0);
+  Result rev = router.query(2, 0);
   assert(rev.dist == INF);
   assert(rev.path.empty());
 }
 
-int main() {
-  test_eight_node_graph();   // VERIFIED
-  test_unreachable_target(); // VERIFIED
+// Test 50 consecutive queries on the same router object vs fresh router
+void test_consecutive_queries_reused_vs_fresh() {
+  Graph g(10);
+  for (uint32_t i = 0; i < 9; ++i) {
+    g.add_edge(i, i + 1, (i + 1) * 3);
+    g.add_edge(i + 1, i, (i + 1) * 3);
+  }
+  g.add_edge(0, 5, 20);
+  g.add_edge(2, 8, 15);
+  g.add_edge(3, 7, 10);
 
-  test_one_way_edge(); // VERIFIED
+  DijkstraRouter router(g);
+  for (int q = 0; q < 50; ++q) {
+    uint32_t s = static_cast<uint32_t>((q * 7 + 3) % 10);
+    uint32_t t = static_cast<uint32_t>((q * 11 + 5) % 10);
+    Result res_reused = router.query(s, t);
+    Result res_fresh = DijkstraRouter(g).query(s, t);
+    assert(res_reused.dist == res_fresh.dist);
+    assert(res_reused.path == res_fresh.path);
+    assert(res_reused.settled == res_fresh.settled);
+  }
+}
+
+int main() {
+  test_eight_node_graph();
+  test_unreachable_target();
+  test_one_way_edge();
+  test_consecutive_queries_reused_vs_fresh();
 
   cout << "All Dijkstra tests passed successfully.\n";
   return 0;

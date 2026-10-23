@@ -1,4 +1,5 @@
 NOTES.md
 build/
 cmake-build-*/
-.cache/clangd/index
+.cache
+BENCHMARKS.md

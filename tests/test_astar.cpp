@@ -3,8 +3,10 @@
 #include "../src/dijkstra.hpp"
 #include "../src/geo.hpp"
 #include "../src/graph.hpp"
+#include "../src/router.hpp"
 #include <cassert>
 #include <cmath>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <random>
@@ -59,6 +61,13 @@ int main() {
   // Create random geometric graph
   Graph g = generate_random_geometric_graph(NUM_NODES, EXTRA_EDGES, 1337);
 
+  // Instantiate routers with reusable workspaces
+  DijkstraRouter dijkstra_router(g);
+  AStarRouter astar_router(g);
+
+  assert(strcmp(dijkstra_router.name(), "Dijkstra") == 0);
+  assert(strcmp(astar_router.name(), "A*") == 0);
+
   mt19937 rng(999);
   uniform_int_distribution<uint32_t> node_dist(
       0, static_cast<uint32_t>(NUM_NODES - 1));
@@ -70,8 +79,8 @@ int main() {
     uint32_t s = node_dist(rng);
     uint32_t t = node_dist(rng);
 
-    Result d_res = dijkstra(g, s, t);
-    Result a_res = astar(g, s, t);
+    Result d_res = dijkstra_router.query(s, t);
+    Result a_res = astar_router.query(s, t);
 
     // 1. Both algorithms must find the exact same shortest distance
     assert(a_res.dist == d_res.dist);
@@ -107,6 +116,19 @@ int main() {
 
     total_settled_dijkstra += d_res.settled;
     total_settled_astar += a_res.settled;
+  }
+
+  // 50 consecutive queries on same router vs fresh router check
+  mt19937 rng_check(4242);
+  AStarRouter reused_astar(g);
+  for (size_t q = 0; q < 50; ++q) {
+    uint32_t s = node_dist(rng_check);
+    uint32_t t = node_dist(rng_check);
+    Result reused_res = reused_astar.query(s, t);
+    Result fresh_res = AStarRouter(g).query(s, t);
+    assert(reused_res.dist == fresh_res.dist);
+    assert(reused_res.path == fresh_res.path);
+    assert(reused_res.settled == fresh_res.settled);
   }
 
   double avg_dijkstra =
