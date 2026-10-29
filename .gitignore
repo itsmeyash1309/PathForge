@@ -3,3 +3,4 @@ build/
 cmake-build-*/
 .cache
 BENCHMARKS.md
+/data
